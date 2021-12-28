@@ -85,22 +85,36 @@ const iterateFractal = function(fractal, generator) {
 
 const generator = new LinearFractal([
     new Point(0.0, -0.5),
-    new Point(0.3, -0.3),  
-    new Point(0.7, 0.35),
-    new Point(1.0, -0.4)]);
+    new Point(0.1, -0.1),
+    new Point(0.4, 0.4),
+    new Point(0.7, -0.1),
+    new Point(1.0, 0.15)]);
 
 const initiator = new LinearFractal([
-  new Point(0.0, 0.0),
-  new Point(1 - 0.618, 0.5),  
-  new Point(0.618, -0.5),
-  new Point(1.0, 0.0),
+  new Point(0.0, 0.3),
+  new Point(0.13, -0.2),
+  new Point(0.47, -0.3),
+  new Point(0.69, 0.03),
+  new Point(1.0, 0.5),
 ]);
 
-const numGenerations = 7;
+const numGenerations = 4;
 let resultFractal = initiator;
 // let resultFractal = generator;
 for (let i = 0; i < numGenerations; i++) {
-  resultFractal = iterateFractal(resultFractal, generator)
+  // resultFractal = iterateFractal(resultFractal, generator);
+
+  // if (i % 2 == 0) {
+  //   resultFractal = iterateFractal(resultFractal, generator);
+  // } else {
+  //   resultFractal = iterateFractal(generator, resultFractal);
+  // }
+
+  if (Math.random() < 0.5) {
+    resultFractal = iterateFractal(resultFractal, generator);
+  } else {
+    resultFractal = iterateFractal(generator, resultFractal);
+  }
 }
 
 const X = resultFractal.X();
