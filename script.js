@@ -83,20 +83,17 @@ const iterateFractal = function(fractal, generator) {
   return new LinearFractal(nextFractalLayerPoints);
 }
 
-const generator = new LinearFractal([new Point(0.0, 0.0),
-    new Point(1.0/5.0, 0.25),
-    new Point(0.47, -0.42),
-    new Point(2.5/3.0, 0.5),
+const generator = new LinearFractal([
+    new Point(0.0, 0.0),
     new Point(1.0, 0.0)]);
 
 const initiator = new LinearFractal([
-  new Point(0.0, -0.5),
-  new Point(0.25, 0.3),
-  new Point(0.7, 0.5),
-  new Point(1.0, -0.5)
+  new Point(0.0, 0.0),
+  new Point(0.5, 0.5),
+  new Point(1.0, 0.0)
 ]);
 
-const numGenerations = 5;
+const numGenerations = 0;
 let resultFractal = initiator;
 for (let i = 0; i < numGenerations; i++) {
   resultFractal = iterateFractal(resultFractal, generator)
@@ -131,17 +128,27 @@ for (var i = 0; i < waveformLength; i++) {
   var fractalYLeft = Y[currentMaxFractalXIndex - 1];
   var fractalYRight = Y[currentMaxFractalXIndex];
   var fractalDeltaX = fractalXRight - fractalXLeft;
-  var sampleYLeft = 2 * fractalYLeft * ((sampleXPoint - fractalXLeft) / fractalDeltaX);
-  if (isNaN(sampleYLeft)) {
-    sampleYLeft = 0;
-  }
-  var sampleYRight = 2 * fractalYRight * ((fractalXRight - sampleXPoint) / fractalDeltaX);
-  if (isNaN(sampleYRight)) {
-    sampleYRight = 0;
-  }
 
-  var sampleYPoint = sampleYLeft + sampleYRight;
-  audioBuffer[i] = sampleYPoint;
+  if (fractalDeltaX == 0) {
+    var sampleYPoint = fractalYLeft + fractalYRight;
+    audioBuffer[i] = sampleYPoint;
+  } else {
+    // If the sample point is closer to one side, we subtract the distance to the _other_ side to get the interpolation fraction
+    // fraction because distance is inversely proportional.
+    var interpolationFractionLeft = fractalXRight - sampleXPoint;
+    var sampleYLeft = 2 * fractalYLeft * ((interpolationFractionLeft) / fractalDeltaX);
+    if (isNaN(sampleYLeft)) {
+      sampleYLeft = 0;
+    }
+    var interpolationFractionRight = sampleXPoint - fractalXLeft;
+    var sampleYRight = 2 * fractalYRight * ((interpolationFractionRight) / fractalDeltaX);
+    if (isNaN(sampleYRight)) {
+      sampleYRight = 0;
+    }
+
+    var sampleYPoint = sampleYLeft + sampleYRight;
+    audioBuffer[i] = sampleYPoint;
+  }
 }
 
 // 3. Convert the AudioBuffer into a WAV file.
