@@ -83,26 +83,49 @@ const iterateFractal = function(fractal, generator) {
   return new LinearFractal(nextFractalLayerPoints);
 }
 
-const generator = new LinearFractal([
-    new Point(0.0, -0.5),
-    new Point(0.1, -0.1),
-    new Point(0.4, 0.4),
-    new Point(0.7, -0.1),
-    new Point(1.0, 0.15)]);
+const createRandomPoints = function(numPoints) {
+  const x = [0.0];
+  for (let i = 0; i < numPoints - 2; i++) {
+    x.push(Math.random())
+  }
+  x.sort();
+  x.push(1.0);
 
-const initiator = new LinearFractal([
-  new Point(0.0, 0.3),
-  new Point(0.13, -0.2),
-  new Point(0.47, -0.3),
-  new Point(0.69, 0.03),
-  new Point(1.0, 0.5),
-]);
+  const y = [];
+  for (let i = 0; i < numPoints; i++) {
+    y.push(Math.random() - 0.5);
+  }
 
-const numGenerations = 4;
+  const result = [];
+  for (let i = 0; i < numPoints; i++) {
+    result.push(new Point(x[i], y[i]));
+  }
+  console.log(result);
+  return result;
+}
+
+const numGeneratorPoints = 3 + Math.floor(Math.random() * 5);
+const numInitiatorPoints = 2 + Math.floor(Math.random() * 4);
+const generator = new LinearFractal(createRandomPoints(numGeneratorPoints));
+const initiator = new LinearFractal(createRandomPoints(numInitiatorPoints));
+// const generator = new LinearFractal([
+//   new Point(0.0, -0.5),
+//   new Point(0.25, 0.0),
+//   new Point(0.75, 0.25),
+//   new Point(1.0, 0.5),
+// ]);
+// const initiator = new LinearFractal([
+//   new Point(0.0, 0.0),
+//   new Point(0.25, 0.5),
+//   new Point(0.75, -0.5),
+//   new Point(1.0, 0.0),
+// ]);
+
+const numGenerations = 8;
 let resultFractal = initiator;
 // let resultFractal = generator;
 for (let i = 0; i < numGenerations; i++) {
-  // resultFractal = iterateFractal(resultFractal, generator);
+  resultFractal = iterateFractal(resultFractal, generator);
 
   // if (i % 2 == 0) {
   //   resultFractal = iterateFractal(resultFractal, generator);
@@ -110,11 +133,11 @@ for (let i = 0; i < numGenerations; i++) {
   //   resultFractal = iterateFractal(generator, resultFractal);
   // }
 
-  if (Math.random() < 0.5) {
-    resultFractal = iterateFractal(resultFractal, generator);
-  } else {
-    resultFractal = iterateFractal(generator, resultFractal);
-  }
+  // if (Math.random() < 0.5) {
+  //   resultFractal = iterateFractal(resultFractal, generator);
+  // } else {
+  //   resultFractal = iterateFractal(generator, resultFractal);
+  // }
 }
 
 const X = resultFractal.X();
@@ -202,6 +225,8 @@ for (var i = 0; i < audioBuffer.length; i++) {
   waveBytePosition += 2;
 }
 
+console.log("first audio value: " + audioBuffer[0]);
+
 var wavBlob = new Blob([wavBuffer], {type: 'audio/wave'});
 
 var wavBlobUrl = URL.createObjectURL(wavBlob);
@@ -211,19 +236,24 @@ downloadLinkElement.download = "fractal_wav_file.wav";
 
 // 4. Graph the waveform.
 var canvas = document.getElementById('canvas');
-canvas.setAttribute('width', window.innerWidth * 0.9);
-canvas.setAttribute('height', window.innerHeight * 0.9);
-var width = canvas.getAttribute('width');
+canvas.setAttribute('width', Math.floor(window.innerWidth * 0.9));
+canvas.setAttribute('height', Math.floor(window.innerHeight * 0.9));
+var canvasWidth = canvas.getAttribute('width');
 var height = canvas.getAttribute('height');
-console.log(width + "x" + height);
+console.log(canvasWidth + "x" + height);
 var ctx = canvas.getContext('2d');
 
-var xStepSize = width / waveformLength;
-ctx.moveTo(0, height - (height * (1.0 + audioBuffer[0])));
+var xStepSize = canvasWidth / waveformLength;
+const firstDrawingYValue = height - (height * ((1.0 + audioBuffer[0]) / 2));
+ctx.moveTo(0, firstDrawingYValue);
+console.log("start drawing at 0, " + firstDrawingYValue)
 
-for (var i = 1; i < waveformLength; i += 10) {
+for (var i = 10; i < waveformLength; i += 10) {
   var x = xStepSize * i;
   var y = height - (height * ((1.0 + audioBuffer[i]) / 2));
+  if (i == 10) {
+    console.log("first line drawn to " + x + ", " + y);
+  }
   ctx.lineTo(x, y);
   ctx.stroke();
 }
