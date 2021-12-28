@@ -84,17 +84,21 @@ const iterateFractal = function(fractal, generator) {
 }
 
 const generator = new LinearFractal([
-    new Point(0.0, 0.0),
-    new Point(1.0, 0.0)]);
+    new Point(0.0, -0.5),
+    new Point(0.3, -0.3),  
+    new Point(0.7, 0.35),
+    new Point(1.0, -0.4)]);
 
 const initiator = new LinearFractal([
   new Point(0.0, 0.0),
-  new Point(0.5, 0.5),
-  new Point(1.0, 0.0)
+  new Point(1 - 0.618, 0.5),  
+  new Point(0.618, -0.5),
+  new Point(1.0, 0.0),
 ]);
 
-const numGenerations = 0;
+const numGenerations = 7;
 let resultFractal = initiator;
+// let resultFractal = generator;
 for (let i = 0; i < numGenerations; i++) {
   resultFractal = iterateFractal(resultFractal, generator)
 }
@@ -193,6 +197,8 @@ downloadLinkElement.download = "fractal_wav_file.wav";
 
 // 4. Graph the waveform.
 var canvas = document.getElementById('canvas');
+canvas.setAttribute('width', window.innerWidth * 0.9);
+canvas.setAttribute('height', window.innerHeight * 0.9);
 var width = canvas.getAttribute('width');
 var height = canvas.getAttribute('height');
 console.log(width + "x" + height);
