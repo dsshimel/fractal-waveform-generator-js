@@ -1,10 +1,10 @@
 // Constants
-const audioBitRate = 16; // 16 bit audio
-const audioByteRate = audioBitRate / 8;
-const numChannels = 1
-const sampleRate = 44100
-const wavHeaderLength = 44;
-const waveformLength = 44100 // 1 second of audio
+const AUDIO_BIT_RATE = 16; // 16 bit audio
+const AUDIO_BYTE_RATE = AUDIO_BIT_RATE / 8;
+const NUM_CHANNELS = 1
+const SAMPLE_RATE = 44100
+const WAV_HEADER_LENGTH = 44;
+const WAVEFORM_LENGTH = 44100 // 1 second of audio
 
 // 1. Generate the fractal data, i.e. X and Y arrays.
 function Point(x, y) {
@@ -136,7 +136,7 @@ const createRandomPoints = function(numPoints) {
 }
 
 const createWavBlobFromAudioBuffer = function(audioBuffer) {
-  const wavLength = wavHeaderLength + audioBuffer.length * audioByteRate * numChannels; // bytes
+  const wavLength = WAV_HEADER_LENGTH + audioBuffer.length * AUDIO_BYTE_RATE * NUM_CHANNELS; // bytes
   const wavBuffer = new ArrayBuffer(wavLength);
   const wavDataView = new DataView(wavBuffer);
   wavDataView.setUint32(0, 0x46464952, true); // "RIFF"
@@ -145,11 +145,11 @@ const createWavBlobFromAudioBuffer = function(audioBuffer) {
   wavDataView.setUint32(12, 0x20746d66, true); // "fmt"
   wavDataView.setUint32(16, 16, true); // length of format data
   wavDataView.setUint16(20, 1, true); // format type 1, PCM uncompressed
-  wavDataView.setUint16(22, numChannels, true);
-  wavDataView.setUint32(24, sampleRate, true);
-  wavDataView.setUint32(28, sampleRate * audioByteRate * numChannels, true);
-  wavDataView.setUint16(32, audioByteRate * numChannels, true);
-  wavDataView.setUint16(34, audioBitRate, true);
+  wavDataView.setUint16(22, NUM_CHANNELS, true);
+  wavDataView.setUint32(24, SAMPLE_RATE, true);
+  wavDataView.setUint32(28, SAMPLE_RATE * AUDIO_BYTE_RATE * NUM_CHANNELS, true);
+  wavDataView.setUint16(32, AUDIO_BYTE_RATE * NUM_CHANNELS, true);
+  wavDataView.setUint16(34, AUDIO_BIT_RATE, true);
   wavDataView.setUint32(36, 0x61746164, true); // "data"
   wavDataView.setUint32(40, wavLength - 44, true); // length of the data in bytes
 
@@ -168,6 +168,31 @@ const createWavBlobFromAudioBuffer = function(audioBuffer) {
   console.log("first audio value: " + audioBuffer[0]);
 
   return new Blob([wavBuffer], {type: 'audio/wave'});
+}
+
+const renderFractalAudioBufferToCanvas = function(audioBuffer, generationNumber) {
+  const canvas = document.getElementById('canvas' + generationNumber);
+  canvas.setAttribute('width', Math.floor(window.innerWidth * 0.9));
+  canvas.setAttribute('height', Math.floor(window.innerHeight * 0.9));
+  const canvasWidth = canvas.getAttribute('width');
+  const height = canvas.getAttribute('height');
+  console.log(canvasWidth + "x" + height);
+  const ctx = canvas.getContext('2d');
+
+  const xStepSize = canvasWidth / WAVEFORM_LENGTH;
+  const firstDrawingYValue = height - (height * ((1.0 + audioBuffer[0]) / 2));
+  ctx.moveTo(0, firstDrawingYValue);
+  console.log("start drawing at 0, " + firstDrawingYValue)
+
+  for (var i = 10; i < WAVEFORM_LENGTH; i += 10) {
+    const x = xStepSize * i;
+    const y = height - (height * ((1.0 + audioBuffer[i]) / 2));
+    if (i == 10) {
+      console.log("first line drawn to " + x + ", " + y);
+    }
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  }
 }
 
 // "Main" program starts here
@@ -189,6 +214,7 @@ const initiator = new LinearFractal(initiatorPoints);
 //   new Point(1.0, 0.0),
 // ]);
 
+// Generate the fractal sequence.
 const numGenerations = 5;
 let currentFractal = initiator;
 fractalGenerations = [];
@@ -209,23 +235,18 @@ for (let i = 0; i < numGenerations; i++) {
   // }
 }
 
-for (let generationNumber = 0; generationNumber < fractalGenerations.length; generationNumber++) {
-  const resultFractal = fractalGenerations[generationNumber];
-  const X = resultFractal.X();
-  const Y = resultFractal.Y();
-
-  // 2. Convert the data into an AudioBuffer.
-  var audioContext = new AudioContext();
+const convertFractalToAudioBuffer = function(X, Y) {
+  const audioContext = new AudioContext();
   console.log("Number of fractal points: " + X.length);
 
   // Create an empty audio buffer within the context that has the 
   // desired properties.
-  /* AudioBuffer */ var fractalWaveformBuffer = audioContext.createBuffer(/*numOfChannels*/ 1, waveformLength, sampleRate);
+  /* AudioBuffer */ const fractalWaveformBuffer = audioContext.createBuffer(/*numOfChannels*/ 1, WAVEFORM_LENGTH, SAMPLE_RATE);
 
-  /* Float32Array */ var audioBuffer = fractalWaveformBuffer.getChannelData(0);
+  /* Float32Array */ const audioBuffer = fractalWaveformBuffer.getChannelData(0);
   var currentMaxFractalXIndex = 1;
-  for (var i = 0; i < waveformLength; i++) {
-    var sampleXPoint = i / waveformLength;
+  for (var i = 0; i < WAVEFORM_LENGTH; i++) {
+    var sampleXPoint = i / WAVEFORM_LENGTH;
     while (X[currentMaxFractalXIndex] < sampleXPoint) {
       currentMaxFractalXIndex++;
     }
@@ -258,42 +279,33 @@ for (let generationNumber = 0; generationNumber < fractalGenerations.length; gen
     }
   }
 
+  return audioBuffer;
+}
+
+// Convert each generation to WAV and graph them.
+for (let generationNumber = 0; generationNumber < fractalGenerations.length; generationNumber++) {
+  const resultFractal = fractalGenerations[generationNumber];
+  const X = resultFractal.X();
+  const Y = resultFractal.Y();
+
+  // 2. Convert the data into an AudioBuffer.
+  const audioBuffer = convertFractalToAudioBuffer(X, Y);
+
   // 3. Convert the AudioBuffer into a WAV file.
   const wavBlob = createWavBlobFromAudioBuffer(audioBuffer);
 
-  var wavBlobUrl = URL.createObjectURL(wavBlob);
-  var downloadLinkElement = document.getElementById('downloadLink' + generationNumber);
+  const wavBlobUrl = URL.createObjectURL(wavBlob);
+  const downloadLinkElement = document.getElementById('downloadLink' + generationNumber);
   downloadLinkElement.href = wavBlobUrl;
   downloadLinkElement.download = "fractal_wav_file" + generationNumber +".wav";
 
   // 4. Graph the waveform.
-  var canvas = document.getElementById('canvas' + generationNumber);
-  canvas.setAttribute('width', Math.floor(window.innerWidth * 0.9));
-  canvas.setAttribute('height', Math.floor(window.innerHeight * 0.9));
-  var canvasWidth = canvas.getAttribute('width');
-  var height = canvas.getAttribute('height');
-  console.log(canvasWidth + "x" + height);
-  var ctx = canvas.getContext('2d');
-
-  var xStepSize = canvasWidth / waveformLength;
-  const firstDrawingYValue = height - (height * ((1.0 + audioBuffer[0]) / 2));
-  ctx.moveTo(0, firstDrawingYValue);
-  console.log("start drawing at 0, " + firstDrawingYValue)
-
-  for (var i = 10; i < waveformLength; i += 10) {
-    var x = xStepSize * i;
-    var y = height - (height * ((1.0 + audioBuffer[i]) / 2));
-    if (i == 10) {
-      console.log("first line drawn to " + x + ", " + y);
-    }
-    ctx.lineTo(x, y);
-    ctx.stroke();
-  }
+  renderFractalAudioBufferToCanvas(audioBuffer, generationNumber);
 
   // 5. Optionally make waveform playable in the browser.
-  /* AudioBufferSourceNode */ var source = audioContext.createBufferSource();
-  source.buffer = fractalWaveformBuffer;
-  source.connect(audioContext.destination);
+  // /* AudioBufferSourceNode */ var source = audioContext.createBufferSource();
+  // source.buffer = fractalWaveformBuffer;
+  // source.connect(audioContext.destination);
   // source.loop = true;
   // source.start();
 }
