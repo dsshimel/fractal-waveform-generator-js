@@ -195,44 +195,26 @@ const renderFractalAudioBufferToCanvas = function(audioBuffer, generationNumber)
   }
 }
 
-// "Main" program starts here
-const numGeneratorPoints = 3 + Math.floor(Math.random() * 5);
-const numInitiatorPoints = 2 + Math.floor(Math.random() * 4);
-const generator = new LinearFractal(createRandomPoints(numGeneratorPoints));
-const initiatorPoints = createRandomPoints(numInitiatorPoints);
-const initiator = new LinearFractal(initiatorPoints);
-// const generator = new LinearFractal([
-//   new Point(0.0, -0.5),
-//   new Point(0.25, 0.0),
-//   new Point(0.75, 0.25),
-//   new Point(1.0, 0.5),
-// ]);
-// const initiator = new LinearFractal([
-//   new Point(0.0, 0.0),
-//   new Point(0.25, 0.5),
-//   new Point(0.75, -0.5),
-//   new Point(1.0, 0.0),
-// ]);
+const renderFractalSeriesToCanvas = function(X, Y, generationNumber) {
+  const canvas = document.getElementById('canvas' + generationNumber);
+  canvas.setAttribute('width', Math.floor(window.innerWidth * 0.9));
+  canvas.setAttribute('height', Math.floor(window.innerHeight * 0.9));
+  const canvasWidth = canvas.getAttribute('width');
+  const canvasHeight = canvas.getAttribute('height');
+  console.log(canvasWidth + "x" + canvasHeight);
+  const ctx = canvas.getContext('2d');
 
-// Generate the fractal sequence.
-const numGenerations = 5;
-let currentFractal = initiator;
-fractalGenerations = [];
-for (let i = 0; i < numGenerations; i++) {
-  currentFractal = iterateFractal(currentFractal, generator);
-  fractalGenerations.push(currentFractal);
+  // X is on [0.0, 1.0]
+  // Y is on [-0.5, 0.5]
+  const firstDrawingYValue = canvasHeight - (canvasHeight * ((0.5 + Y[0])));
+  ctx.moveTo(canvasWidth * X[0], firstDrawingYValue);
 
-  // if (i % 2 == 0) {
-  //   resultFractal = iterateFractal(resultFractal, generator);
-  // } else {
-  //   resultFractal = iterateFractal(generator, resultFractal);
-  // }
-
-  // if (Math.random() < 0.5) {
-  //   resultFractal = iterateFractal(resultFractal, generator);
-  // } else {
-  //   resultFractal = iterateFractal(generator, resultFractal);
-  // }
+  for (var i = 1; i < X.length; i++) {
+    const x = canvasWidth * X[i];
+    const y = canvasHeight - (canvasHeight * ((0.5 + Y[i])));
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  }
 }
 
 const convertFractalToAudioBuffer = function(X, Y) {
@@ -282,27 +264,93 @@ const convertFractalToAudioBuffer = function(X, Y) {
   return audioBuffer;
 }
 
+const setWavDownloadLink = function(wavBlob, generationNumber) {
+  const wavBlobUrl = URL.createObjectURL(wavBlob);
+  const downloadLinkElement = document.getElementById('downloadLink' + generationNumber);
+  downloadLinkElement.href = wavBlobUrl;
+  downloadLinkElement.download = "fractal_wav_file" + generationNumber + ".wav";
+}
+
+// "Main" program starts here
+const numGeneratorPoints = 3 + Math.floor(Math.random() * 5);
+const numInitiatorPoints = 2 + Math.floor(Math.random() * 4);
+const generator = new LinearFractal(createRandomPoints(numGeneratorPoints));
+const initiatorPoints = createRandomPoints(numInitiatorPoints);
+const initiator = new LinearFractal(initiatorPoints);
+// const generator = new LinearFractal([
+//   new Point(0.0, -0.5),
+//   new Point(0.25, 0.0),
+//   new Point(0.75, 0.25),
+//   new Point(1.0, 0.5),
+// ]);
+// const initiator = new LinearFractal([
+//   new Point(0.0, 0.0),
+//   new Point(0.25, 0.5),
+//   new Point(0.75, -0.5),
+//   new Point(1.0, 0.0),
+// ]);
+
+// Generate the fractal sequence.
+const numGenerations = 4;
+let currentFractal = initiator;
+fractalGenerations = [];
+for (let i = 0; i < numGenerations; i++) {
+  currentFractal = iterateFractal(currentFractal, generator);
+  fractalGenerations.push(currentFractal);
+
+  // if (i % 2 == 0) {
+  //   resultFractal = iterateFractal(resultFractal, generator);
+  // } else {
+  //   resultFractal = iterateFractal(generator, resultFractal);
+  // }
+
+  // if (Math.random() < 0.5) {
+  //   resultFractal = iterateFractal(resultFractal, generator);
+  // } else {
+  //   resultFractal = iterateFractal(generator, resultFractal);
+  // }
+}
+
+// generator
+renderFractalSeriesToCanvas(generator.X(), generator.Y(), -2);
+
+//  Convert the data into an AudioBuffer.
+let generatorAudioBuffer = convertFractalToAudioBuffer(generator.X(), generator.Y());
+
+// Convert the AudioBuffer into a WAV file.
+const generatorWavBlob = createWavBlobFromAudioBuffer(generatorAudioBuffer);
+setWavDownloadLink(generatorWavBlob, -2);
+
+// initiator
+// Graph the waveform.
+renderFractalSeriesToCanvas(initiator.X(), initiator.Y(), -1);
+
+//  Convert the data into an AudioBuffer.
+let initiatorAudioBuffer = convertFractalToAudioBuffer(initiator.X(), initiator.Y());
+
+// Convert the AudioBuffer into a WAV file.
+const initiatorWavBlob = createWavBlobFromAudioBuffer(initiatorAudioBuffer);
+setWavDownloadLink(initiatorWavBlob, -1);
+
 // Convert each generation to WAV and graph them.
 for (let generationNumber = 0; generationNumber < fractalGenerations.length; generationNumber++) {
   const resultFractal = fractalGenerations[generationNumber];
   const X = resultFractal.X();
   const Y = resultFractal.Y();
 
-  // 2. Convert the data into an AudioBuffer.
+  // Graph the waveform.
+  renderFractalSeriesToCanvas(X, Y, generationNumber);
+
+  //  Convert the data into an AudioBuffer.
   const audioBuffer = convertFractalToAudioBuffer(X, Y);
 
-  // 3. Convert the AudioBuffer into a WAV file.
+  // Convert the AudioBuffer into a WAV file.
   const wavBlob = createWavBlobFromAudioBuffer(audioBuffer);
+  setWavDownloadLink(wavBlob, generationNumber);
 
-  const wavBlobUrl = URL.createObjectURL(wavBlob);
-  const downloadLinkElement = document.getElementById('downloadLink' + generationNumber);
-  downloadLinkElement.href = wavBlobUrl;
-  downloadLinkElement.download = "fractal_wav_file" + generationNumber +".wav";
+  // renderFractalAudioBufferToCanvas(audioBuffer, generationNumber);
 
-  // 4. Graph the waveform.
-  renderFractalAudioBufferToCanvas(audioBuffer, generationNumber);
-
-  // 5. Optionally make waveform playable in the browser.
+  // Optionally make waveform playable in the browser.
   // /* AudioBufferSourceNode */ var source = audioContext.createBufferSource();
   // source.buffer = fractalWaveformBuffer;
   // source.connect(audioContext.destination);
